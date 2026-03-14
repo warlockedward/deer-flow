@@ -5,12 +5,14 @@ from langchain.tools import BaseTool
 from src.config import get_app_config
 from src.reflection import resolve_variable
 from src.tools.builtins import ask_clarification_tool, present_file_tool, task_tool, view_image_tool
+from src.tools.builtins.bayesian_inference import calculate_bayesian_risk
 
 logger = logging.getLogger(__name__)
 
 BUILTIN_TOOLS = [
     present_file_tool,
     ask_clarification_tool,
+    calculate_bayesian_risk,
 ]
 
 SUBAGENT_TOOLS = [
