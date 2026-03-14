@@ -5,11 +5,29 @@
     "r_and_d_ratio": 0.03,
     "labor_productivity_ratio": 1.2
   },
+  "signals": {
+    "decay_rate_months": 6,
+    "multi_source_threshold": 2
+  },
+  "causal_relationships": [
+    {
+      "cause": "Management_Gap",
+      "effect": "CTO_departure",
+      "strength": "strong"
+    },
+    {
+      "cause": "Management_Gap",
+      "effect": "RD_drop",
+      "strength": "medium"
+    }
+  ],
   "conflict_rules": [
     {
       "claim": "Innovation Leader",
       "behavior": "Decreasing R&D Investment",
-      "symptom_output": "Cost Structure Out of Control"
+      "severity": "high",
+      "trigger_signals": ["RD_drop", "Patent_stagnation"],
+      "symptom_output": "Strategic-Behavioral Mismatch: Innovation Stagnation"
     }
   ]
 }

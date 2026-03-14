@@ -5,10 +5,28 @@
     "r_and_d_ratio": 0.20,
     "talent_retention_rate": 0.85
   },
+  "signals": {
+    "decay_rate_months": 6,
+    "multi_source_threshold": 2
+  },
+  "causal_relationships": [
+    {
+      "cause": "Management_Gap",
+      "effect": "Key_talent_departure",
+      "strength": "strong"
+    },
+    {
+      "cause": "Management_Gap",
+      "effect": "RD_drop",
+      "strength": "medium"
+    }
+  ],
   "conflict_rules": [
     {
       "claim": "Talent-Driven Organization",
       "behavior": "High Key-Person Turnover",
+      "severity": "high",
+      "trigger_signals": ["Key_talent_departure", "Retention_decline"],
       "symptom_output": "Organizational Capability Fracture"
     }
   ]
