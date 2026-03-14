@@ -3,13 +3,19 @@ from pgmpy.factors.discrete import TabularCPD
 from pgmpy.inference import VariableElimination
 from langchain.tools import tool
 
-model = DiscreteBayesianNetwork([("Management_Gap", "CTO_departure"), ("Management_Gap", "R&D_drop")])
+MANAGEMENT_GAP = "Management_Gap"
+CTO_DEPARTURE = "CTO_departure"
+RD_DROP = "R&D_drop"
 
-cpd_mg = TabularCPD(variable="Management_Gap", variable_card=2, values=[[0.8], [0.2]])
+KNOWN_SYMPTOMS = {CTO_DEPARTURE, RD_DROP}
 
-cpd_cd = TabularCPD(variable="CTO_departure", variable_card=2, values=[[0.9, 0.3], [0.1, 0.7]], evidence=["Management_Gap"], evidence_card=[2])
+model = DiscreteBayesianNetwork([(MANAGEMENT_GAP, CTO_DEPARTURE), (MANAGEMENT_GAP, RD_DROP)])
 
-cpd_rd = TabularCPD(variable="R&D_drop", variable_card=2, values=[[0.8, 0.2], [0.2, 0.8]], evidence=["Management_Gap"], evidence_card=[2])
+cpd_mg = TabularCPD(variable=MANAGEMENT_GAP, variable_card=2, values=[[0.8], [0.2]])
+
+cpd_cd = TabularCPD(variable=CTO_DEPARTURE, variable_card=2, values=[[0.9, 0.3], [0.1, 0.7]], evidence=[MANAGEMENT_GAP], evidence_card=[2])
+
+cpd_rd = TabularCPD(variable=RD_DROP, variable_card=2, values=[[0.8, 0.2], [0.2, 0.8]], evidence=[MANAGEMENT_GAP], evidence_card=[2])
 
 model.add_cpds(cpd_mg, cpd_cd, cpd_rd)
 infer = VariableElimination(model)
@@ -23,12 +29,11 @@ def calculate_bayesian_risk(symptoms: list[str]) -> float:
         symptoms: A list of observed symptoms (e.g., ["CTO_departure", "R&D_drop"]).
     """
     evidence = {}
-    if "CTO_departure" in symptoms:
-        evidence["CTO_departure"] = 1
-    if "R&D_drop" in symptoms:
-        evidence["R&D_drop"] = 1
+    for symptom in symptoms:
+        if symptom in KNOWN_SYMPTOMS:
+            evidence[symptom] = 1
 
-    result = infer.query(variables=["Management_Gap"], evidence=evidence)
+    result = infer.query(variables=[MANAGEMENT_GAP], evidence=evidence)
     return float(result.values[1])
 
 

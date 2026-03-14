@@ -20,3 +20,10 @@ def test_calculate_bayesian_risk_no_symptoms():
     assert isinstance(prob, float)
     # Should return the prior probability (approx 0.2)
     assert 0.19 < prob < 0.21
+
+
+def test_calculate_bayesian_risk_unknown_symptoms():
+    prob = calculate_bayesian_risk.invoke({"symptoms": ["Unknown_Symptom", "Another_One"]})
+
+    assert isinstance(prob, float)
+    assert 0.19 < prob < 0.21
