@@ -1,0 +1,15 @@
+{
+  "industry": "traditional_manufacturing",
+  "benchmarks": {
+    "avg_gross_margin": 0.15,
+    "r_and_d_ratio": 0.03,
+    "labor_productivity_ratio": 1.2
+  },
+  "conflict_rules": [
+    {
+      "claim": "Innovation Leader",
+      "behavior": "Decreasing R&D Investment",
+      "symptom_output": "Cost Structure Out of Control"
+    }
+  ]
+}

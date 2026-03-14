@@ -1,0 +1,15 @@
+{
+  "industry": "high_tech",
+  "benchmarks": {
+    "avg_gross_margin": 0.60,
+    "r_and_d_ratio": 0.20,
+    "talent_retention_rate": 0.85
+  },
+  "conflict_rules": [
+    {
+      "claim": "Talent-Driven Organization",
+      "behavior": "High Key-Person Turnover",
+      "symptom_output": "Organizational Capability Fracture"
+    }
+  ]
+}
