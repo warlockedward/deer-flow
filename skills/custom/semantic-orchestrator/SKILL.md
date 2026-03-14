@@ -17,28 +17,28 @@ You MUST execute the following 4 stages sequentially. Wait for each `task()` to 
 - **Goal**: Gather raw industry data and scan for signals.
 - **Action**: 
   ```python
-  task(subagent_type="sensor_agent", prompt="Read industry configs, scan public data, and output raw signals filtered by time-decay and benchmark deviation.", description="Acquire raw signals")
+  task(subagent_type="sensor_agent", prompt="Read industry configs, scan public data...", load_skills=[], run_in_background=False)
   ```
 
 ### Stage 2: Behavioral Interpretation (Interpreter)
 - **Goal**: Identify contradictions and behavioral symptoms.
 - **Action**: 
   ```python
-  task(subagent_type="interpreter_agent", prompt="Pass sensor data here: [SENSOR_OUTPUT]. Apply 'Strategy-Behaviour Hedging' logic to identify contradictions and output behavioral 'Symptoms'.", description="Interpret behavioral symptoms")
+  task(subagent_type="interpreter_agent", prompt="Pass sensor data here, look for strategy-behavior hedging...", load_skills=[], run_in_background=False)
   ```
 
 ### Stage 3: Risk Modeling (Modeler)
 - **Goal**: Calculate Bayesian risk and enforce reflection gates.
 - **Action**: 
   ```python
-  task(subagent_type="modeler_agent", prompt="Pass interpreter symptoms here: [INTERPRETER_OUTPUT]. Calculate Bayesian risk and enforce RAR Reflection Gate (data backing, no sales pitches, EMBA anchoring).", description="Model business risk")
+  task(subagent_type="modeler_agent", prompt="Pass interpreter symptoms here, run Bayesian risk engine...", load_skills=[], run_in_background=False)
   ```
 
 ### Stage 4: Mentor Briefing (Composer)
 - **Goal**: Generate the final 1:1 mentor-style diagnostic brief.
 - **Action**: 
   ```python
-  task(subagent_type="composer_agent", prompt="Pass modeler conclusion here: [MODELER_OUTPUT]. Draft final mentor-style brief focusing on diagnosing business issues (value-first delivery).", description="Compose mentor brief")
+  task(subagent_type="composer_agent", prompt="Pass modeler conclusion here, draft final mentor-style brief...", load_skills=[], run_in_background=False)
   ```
 
 ## Operational Rules
