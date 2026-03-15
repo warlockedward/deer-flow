@@ -19,6 +19,7 @@ STRENGTH_CPD_VALUES: dict[str, list[list[float]]] = {
 _INDUSTRY_MAPS_DIR = Path(__file__).parent.parent.parent / "config" / "industry_maps"
 
 _DEFAULT_INDUSTRY = "traditional_manufacturing"
+_FEEDBACK_FILE = Path(__file__).parent.parent.parent / "data" / "bayesian_feedback.json"
 
 CTO_DEPARTURE = "CTO_departure"
 RD_DROP = "R&D_drop"
@@ -68,8 +69,61 @@ def apply_time_decay(timestamp: str, decay_rate_months: float) -> float:
     return math.exp(-age_months / decay_rate_months)
 
 
+def _load_feedback() -> dict:
+    """Load RLHF feedback data for dynamic prior adjustment."""
+    if not _FEEDBACK_FILE.exists():
+        return {"priors": {}, "signal_weights": {}}
+    try:
+        with _FEEDBACK_FILE.open() as f:
+            return json.load(f)
+    except (json.JSONDecodeError, FileNotFoundError):
+        return {"priors": {}, "signal_weights": {}}
+
+
+def _save_feedback(feedback_data: dict) -> None:
+    """Save RLHF feedback data."""
+    _FEEDBACK_FILE.parent.mkdir(parents=True, exist_ok=True)
+    with _FEEDBACK_FILE.open("w") as f:
+        json.dump(feedback_data, f, indent=2)
+
+
 def _infer_from_config(config: dict, verified_symptom_names: set[str]) -> float:
+    # Apply RLHF feedback to adjust priors if available
+    feedback = _load_feedback()
+    prior_adjustments = feedback.get("priors", {})
+
     model = build_network(config)
+
+    # Get the base priors
+    cpd_mg = TabularCPD(variable=MANAGEMENT_GAP, variable_card=2, values=[[0.8], [0.2]])
+
+    # Apply feedback adjustments to the Management_Gap prior
+    if MANAGEMENT_GAP in prior_adjustments:
+        adjustment = prior_adjustments[MANAGEMENT_GAP]
+        # Adjust the prior probability of Management_Gap being present (index 1)
+        base_prob_present = cpd_mg.values[1][0]
+        adjusted_prob_present = min(0.95, max(0.05, base_prob_present + adjustment))
+        cpd_mg.values = [[[1 - adjusted_prob_present]], [adjusted_prob_present]]
+
+    model.add_cpds(cpd_mg)
+
+    relationships = config.get("causal_relationships", [])
+    for rel in relationships:
+        effect = rel["effect"]
+        strength = rel.get("strength", "medium")
+        cpd_values = STRENGTH_CPD_VALUES.get(strength, STRENGTH_CPD_VALUES["medium"])
+        cpd = TabularCPD(
+            variable=effect,
+            variable_card=2,
+            values=cpd_values,
+            evidence=[MANAGEMENT_GAP],
+            evidence_card=[2],
+        )
+        model.add_cpds(cpd)
+
+    if not model.check_model():
+        raise ValueError("Built Bayesian network failed validation")
+
     infer = VariableElimination(model)
     effect_names = {r["effect"] for r in config.get("causal_relationships", [])}
     evidence = {name: 1 for name in verified_symptom_names if name in effect_names}
@@ -95,7 +149,7 @@ def calculate_bayesian_risk(symptoms: list) -> float:
 
     Args:
         symptoms: A list of observed symptoms. Each item may be either a plain
-            string (V1 API, e.g. \"CTO_departure\") or a dict with keys
+            string (V1 API, e.g. "CTO_departure") or a dict with keys
             ``name``, ``timestamp`` (ISO date), and ``source`` (V2 API).
     """
     if not symptoms:
@@ -123,5 +177,55 @@ def calculate_bayesian_risk(symptoms: list) -> float:
     return _infer_from_config(config, verified)
 
 
-def update_priors() -> None:
-    pass
+def update_priors(signal_name: str = None, adjustment: float = 0.0, feedback_type: str = "prior") -> None:
+    """Update priors based on RLHF feedback.
+
+    Args:
+        signal_name: Name of the signal to adjust (for signal weight adjustment)
+        adjustment: Amount to adjust the prior/weight by (positive or negative)
+        feedback_type: Type of feedback - "prior" for Management_Gap prior, "signal" for signal weight
+    """
+    feedback_data = _load_feedback()
+
+    if feedback_type == "prior":
+        if MANAGEMENT_GAP not in feedback_data["priors"]:
+            feedback_data["priors"][MANAGEMENT_GAP] = 0.0
+        feedback_data["priors"][MANAGEMENT_GAP] += adjustment
+        # Keep adjustments within reasonable bounds
+        feedback_data["priors"][MANAGEMENT_GAP] = max(-0.5, min(0.5, feedback_data["priors"][MANAGEMENT_GAP]))
+    elif feedback_type == "signal" and signal_name:
+        if "signal_weights" not in feedback_data:
+            feedback_data["signal_weights"] = {}
+        if signal_name not in feedback_data["signal_weights"]:
+            feedback_data["signal_weights"][signal_name] = 0.0
+        feedback_data["signal_weights"][signal_name] += adjustment
+        # Keep signal weights within reasonable bounds
+        feedback_data["signal_weights"][signal_name] = max(-1.0, min(1.0, feedback_data["signal_weights"][signal_name]))
+
+    _save_feedback(feedback_data)
+
+
+def store_review_record(lead_id: str, decision: str, reviewer_notes: str = "", comprehensive_score: float = 0.0, classification: str = "") -> None:
+    """Store review records for algorithm optimization feedback.
+
+    Args:
+        lead_id: Unique identifier for the lead
+        decision: Review decision (APPROVE/REJECT/MODIFY)
+        reviewer_notes: Optional notes from the reviewer
+        comprehensive_score: The calculated comprehensive value score
+        classification: Lead classification (S/A/B/Observation)
+    """
+    feedback_data = _load_feedback()
+
+    if "review_records" not in feedback_data:
+        feedback_data["review_records"] = []
+
+    record = {"lead_id": lead_id, "timestamp": datetime.now().isoformat(), "decision": decision, "reviewer_notes": reviewer_notes, "comprehensive_score": comprehensive_score, "classification": classification}
+
+    feedback_data["review_records"].append(record)
+
+    # Keep only last 1000 records to prevent unbounded growth
+    if len(feedback_data["review_records"]) > 1000:
+        feedback_data["review_records"] = feedback_data["review_records"][-1000:]
+
+    _save_feedback(feedback_data)

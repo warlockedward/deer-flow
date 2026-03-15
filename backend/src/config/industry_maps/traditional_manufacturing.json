@@ -3,7 +3,24 @@
   "benchmarks": {
     "avg_gross_margin": 0.15,
     "r_and_d_ratio": 0.03,
-    "labor_productivity_ratio": 1.2
+    "labor_productivity_ratio": 1.2,
+    "avg_pe_ratio": 12.5,
+    "debt_to_equity": 0.45
+  },
+  "industry_mapping": {
+    "gross_margin_healthy_threshold": 0.20,
+    "gross_margin_warning_threshold": 0.10,
+    "r_and_d_healthy_threshold": 0.08,
+    "r_and_d_warning_threshold": 0.02,
+    "labor_productivity_healthy_threshold": 1.5,
+    "labor_productivity_warning_threshold": 0.8
+  },
+  "logic_mapping": {
+    "Management_Gap": {
+      "benchmark_deviation_threshold": 0.30,
+      "benchmark_factors": ["avg_gross_margin", "r_and_d_ratio", "labor_productivity_ratio"],
+      "conflict_amplifier": 1.5
+    }
   },
   "signals": {
     "decay_rate_months": 6,

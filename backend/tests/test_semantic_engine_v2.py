@@ -129,9 +129,9 @@ class TestLevel5HITL:
         prompt = MODELER_AGENT_CONFIG.system_prompt
         assert "ask_clarification" in prompt
 
-    def test_modeler_prompt_references_contract_value_threshold(self):
+    def test_modeler_prompt_references_high_value_lead_classification(self):
         prompt = MODELER_AGENT_CONFIG.system_prompt
-        assert "1M" in prompt or "1,000,000" in prompt or "million" in prompt.lower() or "百万" in prompt
+        assert "Comprehensive Value Score" in prompt or "classification" in prompt.lower() or "S-level" in prompt or "A-level" in prompt or "B-level" in prompt
 
     def test_modeler_has_ask_clarification_in_tools(self):
         tools = MODELER_AGENT_CONFIG.tools or []

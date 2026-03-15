@@ -3,7 +3,26 @@
   "benchmarks": {
     "avg_gross_margin": 0.60,
     "r_and_d_ratio": 0.20,
-    "talent_retention_rate": 0.85
+    "talent_retention_rate": 0.85,
+    "avg_pe_ratio": 25.0,
+    "rd_intensity": 0.18
+  },
+  "industry_mapping": {
+    "gross_margin_healthy_threshold": 0.50,
+    "gross_margin_warning_threshold": 0.40,
+    "r_and_d_healthy_threshold": 0.25,
+    "r_and_d_warning_threshold": 0.15,
+    "talent_retention_healthy_threshold": 0.90,
+    "talent_retention_warning_threshold": 0.75,
+    "rd_intensity_healthy_threshold": 0.22,
+    "rd_intensity_warning_threshold": 0.12
+  },
+  "logic_mapping": {
+    "Management_Gap": {
+      "benchmark_deviation_threshold": 0.30,
+      "benchmark_factors": ["avg_gross_margin", "r_and_d_ratio", "talent_retention_rate", "rd_intensity"],
+      "conflict_amplifier": 1.5
+    }
   },
   "signals": {
     "decay_rate_months": 6,
