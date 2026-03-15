@@ -10,9 +10,12 @@ from src.gateway.routers import (
     agents,
     artifacts,
     channels,
+    diagnosis,
+    leads,
     mcp,
     memory,
     models,
+    ontology,
     skills,
     suggestions,
     uploads,
@@ -128,6 +131,10 @@ This gateway provides custom endpoints for models, MCP configuration, skills, an
                 "description": "Upload and manage user files for threads",
             },
             {
+                "name": "ontology",
+                "description": "Upload and query global ontology data",
+            },
+            {
                 "name": "agents",
                 "description": "Create and manage custom agents with per-agent config and prompts",
             },
@@ -142,6 +149,14 @@ This gateway provides custom endpoints for models, MCP configuration, skills, an
             {
                 "name": "health",
                 "description": "Health check and system status endpoints",
+            },
+            {
+                "name": "diagnosis",
+                "description": "Run deterministic semantic diagnosis pipelines",
+            },
+            {
+                "name": "leads",
+                "description": "Automated lead scoring and prioritization",
             },
         ],
     )
@@ -167,6 +182,9 @@ This gateway provides custom endpoints for models, MCP configuration, skills, an
     # Uploads API is mounted at /api/threads/{thread_id}/uploads
     app.include_router(uploads.router)
 
+    # Ontology API is mounted at /api/ontology/condensed-emba
+    app.include_router(ontology.router)
+
     # Agents API is mounted at /api/agents
     app.include_router(agents.router)
 
@@ -175,6 +193,9 @@ This gateway provides custom endpoints for models, MCP configuration, skills, an
 
     # Channels API is mounted at /api/channels
     app.include_router(channels.router)
+
+    app.include_router(diagnosis.router)
+    app.include_router(leads.router)
 
     @app.get("/health", tags=["health"])
     async def health_check() -> dict:

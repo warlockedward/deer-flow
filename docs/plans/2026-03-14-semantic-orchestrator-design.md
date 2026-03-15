@@ -17,7 +17,7 @@ The system follows a Hub-and-Spoke model where the `lead_agent` (Hub) uses the `
 
 ## Implementation Details
 - **File Path**: `skills/custom/semantic-orchestrator/SKILL.md`
-- **Tool Usage**: `task(subagent_type=..., prompt=..., description=...)`
+- **Tool Usage**: `task(description=..., prompt=..., subagent_type=...)`
 - **Execution Mode**: Sequential (wait for completion, pass output to next).
 
 ## Data Flow

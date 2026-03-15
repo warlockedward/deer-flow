@@ -63,6 +63,7 @@ def _make_result(
 
 def test_task_tool_returns_error_for_unknown_subagent(monkeypatch):
     monkeypatch.setattr(task_tool_module, "get_subagent_config", lambda _: None)
+    monkeypatch.setattr(task_tool_module, "get_subagent_names", lambda: ["bash", "general-purpose", "sensor_agent"])
 
     result = task_tool_module.task_tool.func(
         runtime=None,
@@ -73,6 +74,46 @@ def test_task_tool_returns_error_for_unknown_subagent(monkeypatch):
     )
 
     assert result.startswith("Error: Unknown subagent type")
+    assert "sensor_agent" in result
+
+
+def test_task_tool_accepts_registered_semantic_subagent_name(monkeypatch):
+    config = SubagentConfig(
+        name="sensor_agent",
+        description="Semantic sensor",
+        system_prompt="Sensor system prompt",
+        max_turns=50,
+        timeout_seconds=10,
+    )
+    runtime = _make_runtime()
+    events = []
+
+    monkeypatch.setattr(task_tool_module, "SubagentStatus", FakeSubagentStatus)
+    monkeypatch.setattr(
+        task_tool_module,
+        "SubagentExecutor",
+        type("DummyExecutor", (), {"__init__": lambda self, **kwargs: None, "execute_async": lambda self, prompt, task_id=None: task_id}),
+    )
+    monkeypatch.setattr(task_tool_module, "get_subagent_config", lambda _: config)
+    monkeypatch.setattr(task_tool_module, "get_skills_prompt_section", lambda: "")
+    monkeypatch.setattr(
+        task_tool_module,
+        "get_background_task_result",
+        lambda _: _make_result(FakeSubagentStatus.COMPLETED, result="done"),
+    )
+    monkeypatch.setattr(task_tool_module, "get_stream_writer", lambda: events.append)
+    monkeypatch.setattr(task_tool_module.time, "sleep", lambda _: None)
+    monkeypatch.setattr("src.tools.get_available_tools", lambda **kwargs: [])
+
+    output = task_tool_module.task_tool.func(
+        runtime=runtime,
+        description="执行任务",
+        prompt="collect signals",
+        subagent_type="sensor_agent",
+        tool_call_id="tc-sensor",
+    )
+
+    assert output == "Task Succeeded. Result: done"
 
 
 def test_task_tool_emits_running_and_completed_events(monkeypatch):

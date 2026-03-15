@@ -5,6 +5,7 @@ from langchain.agents.middleware import SummarizationMiddleware
 from langchain_core.runnables import RunnableConfig
 
 from src.agents.lead_agent.prompt import apply_prompt_template
+from src.agents.middlewares.circuit_breaker_middleware import CircuitBreakerMiddleware
 from src.agents.middlewares.clarification_middleware import ClarificationMiddleware
 from src.agents.middlewares.memory_middleware import MemoryMiddleware
 from src.agents.middlewares.subagent_limit_middleware import SubagentLimitMiddleware
@@ -238,6 +239,8 @@ def _build_middlewares(config: RunnableConfig, model_name: str | None, agent_nam
     model_config = app_config.get_model_config(model_name) if model_name else None
     if model_config is not None and model_config.supports_vision:
         middlewares.append(ViewImageMiddleware())
+
+    middlewares.append(CircuitBreakerMiddleware())
 
     # Add SubagentLimitMiddleware to truncate excess parallel task calls
     subagent_enabled = config.get("configurable", {}).get("subagent_enabled", False)

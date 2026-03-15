@@ -79,6 +79,14 @@ class Paths:
         return self.base_dir / "USER.md"
 
     @property
+    def ontology_dir(self) -> Path:
+        return self.base_dir / "ontology"
+
+    @property
+    def condensed_emba_ontology_file(self) -> Path:
+        return self.ontology_dir / "condensed_emba.json"
+
+    @property
     def agents_dir(self) -> Path:
         """Root directory for all custom agents: `{base_dir}/agents/`."""
         return self.base_dir / "agents"

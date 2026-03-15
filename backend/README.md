@@ -84,7 +84,7 @@ Per-thread isolated execution with virtual path translation:
 
 Async task delegation with concurrent execution:
 
-- **Built-in agents**: `general-purpose` (full toolset) and `bash` (command specialist)
+- **Built-in agents**: `general-purpose`, `bash`, plus domain subagents like `sensor_agent`, `interpreter_agent`, `anomaly_detection_agent`, `modeler_agent`, `composer_agent`
 - **Concurrency**: Max 3 subagents per turn, 15-minute timeout
 - **Execution**: Background thread pools with status tracking and SSE events
 - **Flow**: Agent calls `task()` tool → executor runs subagent in background → polls for completion → returns result
@@ -214,7 +214,7 @@ backend/
 │   │   ├── tools.py           # bash, ls, read/write/str_replace
 │   │   └── middleware.py      # Sandbox lifecycle
 │   ├── subagents/              # Subagent delegation
-│   │   ├── builtins/          # general-purpose, bash agents
+│   │   ├── builtins/          # general-purpose, bash, semantic pipeline agents
 │   │   ├── executor.py        # Background execution engine
 │   │   └── registry.py        # Agent registry
 │   ├── tools/builtins/         # Built-in tools

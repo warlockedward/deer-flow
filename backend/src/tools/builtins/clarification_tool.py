@@ -3,7 +3,7 @@ from typing import Literal
 from langchain.tools import tool
 
 
-@tool("ask_clarification", parse_docstring=True, return_direct=True)
+@tool("ask_clarification", return_direct=True)
 def ask_clarification_tool(
     question: str,
     clarification_type: Literal[

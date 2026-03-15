@@ -37,7 +37,7 @@ deer-flow/
 │   │   │   ├── tools.py       # bash, ls, read/write/str_replace
 │   │   │   └── middleware.py  # Sandbox lifecycle management
 │   │   ├── subagents/         # Subagent delegation system
-│   │   │   ├── builtins/      # general-purpose, bash agents
+│   │   │   ├── builtins/      # general-purpose, bash, semantic pipeline agents
 │   │   │   ├── executor.py    # Background execution engine
 │   │   │   └── registry.py    # Agent registry
 │   │   ├── tools/builtins/    # Built-in tools (present_files, ask_clarification, view_image)
@@ -195,7 +195,7 @@ Proxied through nginx: `/api/langgraph/*` → LangGraph, all other `/api/*` → 
 
 ### Subagent System (`src/subagents/`)
 
-**Built-in Agents**: `general-purpose` (all tools except `task`) and `bash` (command specialist)
+**Built-in Agents**: `general-purpose`, `bash`, plus domain subagents like `sensor_agent`, `interpreter_agent`, `anomaly_detection_agent`, `modeler_agent`, `composer_agent`
 **Execution**: Dual thread pool - `_scheduler_pool` (3 workers) + `_execution_pool` (3 workers)
 **Concurrency**: `MAX_CONCURRENT_SUBAGENTS = 3` enforced by `SubagentLimitMiddleware` (truncates excess tool calls in `after_model`), 15-minute timeout
 **Flow**: `task()` tool → `SubagentExecutor` → background thread → poll 5s → SSE events → result

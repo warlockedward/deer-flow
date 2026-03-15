@@ -26,6 +26,46 @@
     "decay_rate_months": 6,
     "multi_source_threshold": 2
   },
+  "failure_boundaries": {
+    "B": {
+      "min_sources": 2,
+      "min_confidence": 0.6,
+      "environment_signal_names": [
+        "Regulatory_Directive_Issued",
+        "Import_Export_Tariff_Adjusted",
+        "Industry_Access_Catalog_Changed",
+        "Industry_Access_Restricted_Suddenly"
+      ]
+    }
+  },
+  "policy_shock": {
+    "expansion_signal_decay_days": 30,
+    "expansion_oriented_signals": [
+      "Hiring_Expansion",
+      "Capex_Expansion",
+      "New_Site_Planning"
+    ]
+  },
+  "trigger_rules": [
+    {
+      "signal": "Policy_Mutation_Alert + High_Business_Exposure",
+      "threshold": "Critical",
+      "inference_chain": "Logic_Recalibration -> Compliance_Risk -> Strategic_Pivot",
+      "emba_module": "Strategic_Focus_101",
+      "action_script": "Generate_Report: 'Policy Shock Survival Guide'"
+    }
+  ],
+  "confidence": {
+    "threshold": 0.6,
+    "min_verified_symptoms": 2,
+    "min_sources_total": 2,
+    "min_dimensions": 2,
+    "benchmark_indifference_epsilon": 0.05,
+    "signal_dimensions": {
+      "CTO_departure": "executive",
+      "RD_drop": "financial"
+    }
+  },
   "causal_relationships": [
     {
       "cause": "Management_Gap",

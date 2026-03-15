@@ -1,11 +1,13 @@
 import logging
 
-from langchain.tools import BaseTool
+from langchain_core.tools import BaseTool
 
 from src.config import get_app_config
 from src.reflection import resolve_variable
 from src.tools.builtins import ask_clarification_tool, present_file_tool, task_tool, view_image_tool
-from src.tools.builtins.bayesian_inference import calculate_bayesian_risk
+from src.tools.builtins.bayesian_inference import calculate_bayesian_risk, diagnose_management_gap, run_semantic_diagnosis
+from src.tools.builtins.lead_scoring import score_lead
+from src.tools.builtins.ontology_tools import lookup_emba_ontology
 
 logger = logging.getLogger(__name__)
 
@@ -13,6 +15,10 @@ BUILTIN_TOOLS = [
     present_file_tool,
     ask_clarification_tool,
     calculate_bayesian_risk,
+    diagnose_management_gap,
+    run_semantic_diagnosis,
+    score_lead,
+    lookup_emba_ontology,
 ]
 
 SUBAGENT_TOOLS = [

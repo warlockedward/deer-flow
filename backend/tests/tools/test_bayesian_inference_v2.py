@@ -7,18 +7,18 @@ Tests cover:
 - Backward-compat: existing list[str] call still works
 """
 
+import json
 import math
 from datetime import datetime, timedelta
 
 import pytest
 
 from src.tools.builtins.bayesian_inference import (
+    apply_time_decay,
+    build_network,
     calculate_bayesian_risk,
     load_industry_config,
-    build_network,
-    apply_time_decay,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -184,3 +184,30 @@ class TestCalculateBayesianRiskV2:
         risk = calculate_bayesian_risk.invoke({"symptoms": ["Unknown_X", "Unknown_Y"]})
         assert isinstance(risk, float)
         assert 0.19 < risk < 0.21  # Unknown symptoms → prior only
+
+    def test_positive_signal_weight_can_lower_source_requirement(self, tmp_path, monkeypatch):
+        import src.tools.builtins.bayesian_inference as mod
+
+        fb = tmp_path / "bayesian_feedback.json"
+        fb.write_text(json.dumps({"signal_weights": {"CTO_departure": 1.0}}), encoding="utf-8")
+        monkeypatch.setattr(mod, "_FEEDBACK_FILE", fb)
+
+        signals = [
+            {"name": "CTO_departure", "timestamp": _recent(1), "source": "LinkedIn"},
+        ]
+        risk = calculate_bayesian_risk.invoke({"symptoms": signals})
+        assert risk > 0.5
+
+    def test_negative_signal_weight_can_raise_source_requirement(self, tmp_path, monkeypatch):
+        import src.tools.builtins.bayesian_inference as mod
+
+        fb = tmp_path / "bayesian_feedback.json"
+        fb.write_text(json.dumps({"signal_weights": {"CTO_departure": -0.75}}), encoding="utf-8")
+        monkeypatch.setattr(mod, "_FEEDBACK_FILE", fb)
+
+        signals = [
+            {"name": "CTO_departure", "timestamp": _recent(1), "source": "LinkedIn"},
+            {"name": "CTO_departure", "timestamp": _recent(1), "source": "Glassdoor"},
+        ]
+        risk = calculate_bayesian_risk.invoke({"symptoms": signals})
+        assert risk < 0.5

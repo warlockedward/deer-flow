@@ -18,6 +18,19 @@ class ViewedImageData(TypedDict):
     mime_type: str
 
 
+class CircuitBreakerState(TypedDict):
+    triggered: bool
+    industry: str
+    posterior_risk: float
+    confidence_score: float
+    confidence_threshold: NotRequired[float]
+    allow_briefing: bool
+    reasons: list[str]
+    verified_symptoms: list[str]
+    dimensions: list[str]
+    sources_total: int
+
+
 def merge_artifacts(existing: list[str] | None, new: list[str] | None) -> list[str]:
     """Reducer for artifacts list - merges and deduplicates artifacts."""
     if existing is None:
@@ -53,3 +66,4 @@ class ThreadState(AgentState):
     todos: NotRequired[list | None]
     uploaded_files: NotRequired[list[dict] | None]
     viewed_images: Annotated[dict[str, ViewedImageData], merge_viewed_images]  # image_path -> {base64, mime_type}
+    circuit_breaker: NotRequired[CircuitBreakerState | None]

@@ -19,8 +19,16 @@ Your job is to:
 5. Output each retained signal as a structured dict: {"name": "...", "timestamp": "YYYY-MM-DD", "source": "...", "value": "..."}.
 6. Output industry benchmark data as: {"benchmark": {"metric": "...", "value": "...", "industry": "..."}}.
 7. Flag signals that deviate significantly from the industry benchmark (e.g. R&D ratio < 3% in a company claiming "Innovation Leader").
+8. Detect black-swan environmental regime shifts (Failure Boundary B). When confirmed, output an environment_events entry as a dict:
+   {"name": "<event_name>", "boundary": "B", "boundary_id": "...", "triggered_at": "...",
+    "sources": ["..."], "evidence_summary": ["..."], "confidence": 0.0-1.0, "business_exposure": 0.0-1.0,
+    "affected_ontology_nodes": ["..."], "provisional_insight": {...}}.
+   - "name" should be a concrete external-policy semantic signal (e.g. "Regulatory_Directive_Issued",
+     "Import_Export_Tariff_Adjusted", "Industry_Access_Catalog_Changed", "Industry_Access_Restricted_Suddenly").
+   - "business_exposure" estimates how much of the target company's operations are affected (e.g. 0.4 means ~40% exposure) when evidence supports it.
+   - "provisional_insight" is contextual anchor only; do not provide growth advice under Boundary B.
 
-Output format: JSON with two keys: "signals" (list of signal dicts) and "benchmarks" (dict of benchmark metrics).
+Output format: JSON with keys: "signals" (list of signal dicts), "benchmarks" (dict of benchmark metrics), and "environment_events" (list).
 """,
     tools=["web_search", "read_file"],
 )
@@ -68,7 +76,10 @@ Step R — Reflect:
   - Is there zero sales rhetoric? Phrases like "great opportunity" or "we can help" are FORBIDDEN.
 
 Step A — Act:
-  - Call calculate_bayesian_risk with structured signal metadata (V2 dict API: list of {"name", "timestamp", "source", "value"}).
+  - Call diagnose_management_gap with structured signal metadata (V2 dict API: list of {"name", "timestamp", "source", "value"}).
+    - Provide `industry` when known.
+    - Provide `benchmark_deviations` when available (metric -> deviation fraction, e.g. -0.18 for -18%).
+  - Call lookup_emba_ontology with a short query to fetch valid EMBA anchor nodes for this case.
   - **Level 3: Benchmark-Based Prior Adjustment:**
     - Before calling calculate_bayesian_risk, adjust the signal weights based on benchmark deviations.
     - For each signal, calculate its deviation from industry benchmark (provided by Sensor).
@@ -81,6 +92,7 @@ Step R — Reason:
     (a) ≥ 2 independent sources corroborate the same symptom (multi-source threshold).
     (b) All signals within the decay window (enforced by the tool).
     (c) Conclusion maps to a named EMBA ontology node.
+    (d) Circuit breaker allow_briefing is true (no low-confidence trigger).
   - If any condition fails: output INSUFFICIENT_EVIDENCE with the failed condition.
 
 ## Level 5: Enhanced HITL Gate with Multi-Dimensional Scoring
@@ -121,7 +133,7 @@ Provide:
 - Comprehensive Value Score (0-100) and classification (S/A/B/Observation)
 - Recommended review type based on classification
 """,
-    tools=["calculate_bayesian_risk", "ask_clarification"],
+    tools=["diagnose_management_gap", "calculate_bayesian_risk", "lookup_emba_ontology", "ask_clarification"],
 )
 
 COMPOSER_AGENT_CONFIG = SubagentConfig(
@@ -160,9 +172,27 @@ Your job is to:
    - Declining R&D spend in a company intentionally pivoting to asset-light model (not a management gap).
    - Recruitment surge reflecting deliberate geographic expansion, not blind growth.
    - Low gross margins in a platform business during a deliberate land-grab phase.
-3. For each exception: {"exception": "<description>", "standard_pattern": "<model conclusion>", "actual_context": "<why it does not apply>", "recommendation": "re-examine | accept_exception | escalate"}.
+3. Output MUST be JSON only (no markdown). Schema:
+   {
+     "exceptions": [
+       {
+         "title": "...",
+         "recommendation": "ok | bypass_template | re-examine | escalate",
+         "evidence": "...",
+         "why_template_fails": "...",
+         "alternate_hypothesis": "...",
+         "what_to_verify_next": ["..."],
+         "override_recommendation": {
+           "bypass_gates": ["..."],
+           "rationale": "...",
+           "required_evidence": ["..."]
+         }
+       }
+     ],
+     "verdict": "main inference chain is sound | exceptions_found"
+   }
 4. If no exceptions found: {"exceptions": [], "verdict": "main inference chain is sound"}.
-5. If exceptions materially change the diagnosis: set recommendation = "re-examine" and specify which signals to re-weight.
+5. Use recommendation = "bypass_template" only when you believe the diagnosis would be misleading unless a generic template is bypassed. Always include override_recommendation in that case.
 
 Hard constraints:
 - Challenge patterns, not data. Never reject a signal because you dislike the conclusion.
@@ -170,4 +200,39 @@ Hard constraints:
 - You do NOT replace the Modeler. You only flag cases requiring re-examination.
 """,
     tools=["read_file"],
+)
+
+DISTRIBUTION_AGENT_CONFIG = SubagentConfig(
+    name="distribution_agent",
+    description=(
+        "Plans human-send-only outreach packaging (channel, timing window, copy selection) "
+        "based on the review_packet and drafts. Does NOT send messages."
+    ),
+    system_prompt="""You are a distribution agent — you transform a diagnostic output into a human-send-only outreach plan.
+
+Hard constraints:
+- You MUST NOT send messages. You only output a plan.
+- Output MUST be JSON only (no markdown).
+- All outreach must be permission-based and include an opt-out line.
+- Do NOT add sales rhetoric. Keep it concise and value-first.
+
+Input will include:
+- review_packet (send_policy must be human_send_only)
+- drafts (email/linkedin/internal_note)
+
+Output schema (JSON only):
+{
+  "primary_channel": "email" | "linkedin",
+  "send_window_local": "string",
+  "final_copy": {"subject": "string", "body": "string"} | {"body": "string"},
+  "guardrails": ["permission_based", "opt_out_present", "no_sales_pitch"],
+  "tracking": {"client": "string", "industry": "string", "signal_names": ["string"]}
+}
+
+Rules:
+- Choose the primary_channel based on professionalism and likelihood of consent. Default to email.
+- Keep send_window_local within business hours. Default to "next business day 09:30-11:00".
+- final_copy must be derived from the provided drafts with minimal edits.
+""",
+    tools=None,
 )

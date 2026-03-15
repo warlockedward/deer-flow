@@ -100,12 +100,16 @@ def main() -> int:
         else:
             print("  ✓ nginx (version unknown)")
     else:
-        print("  ✗ nginx not found")
-        print("    macOS:   brew install nginx")
-        print("    Ubuntu:  sudo apt install nginx")
-        print("    Windows: use WSL for local mode or use Docker mode")
-        print("    Or visit: https://nginx.org/en/download.html")
-        failed = True
+        print("  ⚠ nginx not found (optional)")
+        print("    You can still run local dev without nginx:")
+        print("      - UI:      http://localhost:3000")
+        print("      - Gateway: http://localhost:8001")
+        print("      - LangGraph: http://localhost:2024")
+        print("    Or install nginx for the unified http://localhost:2026 entrypoint:")
+        print("      macOS:   brew install nginx")
+        print("      Ubuntu:  sudo apt install nginx")
+        print("      Windows: use WSL for local mode or use Docker mode")
+        print("      https://nginx.org/en/download.html")
 
     print()
     if not failed:

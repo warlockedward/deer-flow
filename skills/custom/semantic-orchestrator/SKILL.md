@@ -55,16 +55,19 @@ Execute the following stages **sequentially**. At each stage, apply the specifie
 **Goal:** Gather structured signals and industry benchmarks from public sources.
 
 ```python
-task(subagent_type="sensor_agent", prompt="[Company name and target industry]. 
-1. Scan public data for company signals (financial reports, recruitment, tenders, legal filings). 
+task(
+    description="Sensor signals",
+    prompt="""[Company name and target industry].
+1. Scan public data for company signals (financial reports, recruitment, tenders, legal filings).
 2. Retrieve current industry benchmarks (2026 averages for P/E, labor productivity, gross margin, etc.).
 3. Apply time-decay filter using decay_rate_months from industry config.
 4. Return structured context with:
-   - signals: [{name, timestamp, source, value}] 
+   - signals: [{name, timestamp, source, value}]
    - benchmarks: [{metric, value, industry}]
-   - reflections: [{\"layer\": \"sensor\", \"check\": \"time_decay\", \"status\": \"passed/failed\", \"details\": \"...\"}]
-Discard all signals older than decay_rate_months. Discard all PR and synthetic copy.", 
-run_in_background=False)
+   - reflections: [{"layer": "sensor", "check": "time_decay", "status": "passed/failed", "details": "..."}]
+Discard all signals older than decay_rate_months. Discard all PR and synthetic copy.""",
+    subagent_type="sensor_agent",
+)
 ```
 
 **Level 4 Self-Check — Time-Decay & Benchmark Gate:**
@@ -81,7 +84,9 @@ After receiving Sensor output, verify:
 **Goal:** Create feature vectors and identify strategy-behaviour mismatches.
 
 ```python
-task(subagent_type="interpreter_agent", prompt="[Pass full context from Sensor here]. 
+task(
+    description="Interpreter features",
+    prompt="""[Pass full context from Sensor here].
 1. Load conflict_rules, industry_mapping, and logic_mapping from industry config.
 2. For each company signal, calculate deviation from industry benchmark:
    - deviation_pct = ((company_value - benchmark_value) / benchmark_value) * 100
@@ -89,8 +94,9 @@ task(subagent_type="interpreter_agent", prompt="[Pass full context from Sensor h
 3. Create structured feature vectors: {\"metric\": \"...\", \"company_value\": \"...\", \"benchmark_value\": \"...\", \"deviation_pct\": \"...\", \"status\": \"HEALTHY|WARNING|CRITICAL\"}
 4. Compare company vision statements against actual investment flows using conflict_rules.
 5. Match signal names against trigger_signals. For each conflict: emit Symptom with severity, triggered_by signals, concrete evidence, and benchmark_deviation.
-6. Return updated context with features, symptoms, and reflections.", 
-run_in_background=False)
+6. Return updated context with features, symptoms, and reflections.""",
+    subagent_type="interpreter_agent",
+)
 ```
 
 **Level 2 Self-Check — Conflict Detection & Benchmark Gate:**
@@ -108,12 +114,15 @@ After receiving Interpreter output, verify:
 **Goal:** Prevent mechanical template application. Identify legitimate industry exceptions before risk scoring.
 
 ```python
-task(subagent_type="anomaly_detection_agent", prompt="[Pass full context from Interpreter here]. 
+task(
+    description="Anomaly countercheck",
+    prompt="""[Pass full context from Interpreter here].
 1. Review the preliminary diagnosis (signals, features, symptoms).
 2. Identify any industry-specific exceptions that make the standard Bayesian conclusion inappropriate for this specific company.
 3. Output exceptions with recommendation: re-examine | accept_exception | escalate.
-4. Return updated context with exceptions and reflections.", 
-run_in_background=False)
+4. Return updated context with exceptions and reflections.""",
+    subagent_type="anomaly_detection_agent",
+)
 ```
 
 **Level 3 Self-Check — Anomaly Gate:**
@@ -131,7 +140,9 @@ After receiving Anomaly Detection output:
 **Goal:** Calculate Bayesian risk with benchmark-adjusted priors, full RAR Logical Anchoring, and HITL gate.
 
 ```python
-task(subagent_type="modeler_agent", prompt="[Pass full context from Interpreter/Anomaly here]. 
+task(
+    description="Model risk",
+    prompt="""[Pass full context from Interpreter/Anomaly here].
 1. Execute RAR Reflection Gate.
 2. **Level 3: Benchmark-Based Prior Adjustment:**
    - For each signal, calculate its deviation from industry benchmark (from context.features).
@@ -140,8 +151,9 @@ task(subagent_type="modeler_agent", prompt="[Pass full context from Interpreter/
 3. Call calculate_bayesian_risk with the V2 signal dict API from context.signals.
 4. Anchor conclusion to a named EMBA node.
 5. If contract value > 1M RMB, trigger ask_clarification.
-6. Return updated context with inference results and reflections.", 
-run_in_background=False)
+6. Return updated context with inference results and reflections.""",
+    subagent_type="modeler_agent",
+)
 ```
 
 **Level 1 Self-Check — RAR Logical Anchoring Gate:**
@@ -184,15 +196,18 @@ Before allowing Modeler output to proceed:
 - Level 5: HITL gate is PASSED (or consultant has approved).
 
 ```python
-task(subagent_type="composer_agent", prompt="[Pass full context from Modeler here]. 
+task(
+    description="Compose brief",
+    prompt="""[Pass full context from Modeler here].
 Generate a 1:1 mentor-style diagnostic briefing that:
 1. Cites specific data figures from context.signals and context.features.
 2. Includes benchmark comparison: 'Your company's [metric] is X% below/above industry average of Y'.
 3. Maps conclusions to named EMBA tools.
 4. Zero sales rhetoric.
 5. Structure: (a) anomaly + data + benchmark context, (b) causal inference, (c) EMBA anchor, (d) recommended next step.
-Return final context with completed final_diagnosis.", 
-run_in_background=False)
+Return final context with completed final_diagnosis.""",
+    subagent_type="composer_agent",
+)
 ```
 
 **Final Self-Check — Output Quality Gate:**

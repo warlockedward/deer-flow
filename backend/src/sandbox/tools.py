@@ -1,10 +1,10 @@
 import re
 from pathlib import Path
+from typing import Any
 
-from langchain.tools import ToolRuntime, tool
-from langgraph.typing import ContextT
+from langchain_core.tools import tool
 
-from src.agents.thread_state import ThreadDataState, ThreadState
+from src.agents.thread_state import ThreadDataState
 from src.config.paths import VIRTUAL_PATH_PREFIX
 from src.sandbox.exceptions import (
     SandboxError,
@@ -170,10 +170,7 @@ def validate_local_bash_command_paths(command: str, thread_data: ThreadDataState
         if absolute_path == VIRTUAL_PATH_PREFIX or absolute_path.startswith(f"{VIRTUAL_PATH_PREFIX}/"):
             continue
 
-        if any(
-            absolute_path == prefix.rstrip("/") or absolute_path.startswith(prefix)
-            for prefix in _LOCAL_BASH_SYSTEM_PATH_PREFIXES
-        ):
+        if any(absolute_path == prefix.rstrip("/") or absolute_path.startswith(prefix) for prefix in _LOCAL_BASH_SYSTEM_PATH_PREFIXES):
             continue
 
         unsafe_paths.append(absolute_path)
@@ -209,7 +206,7 @@ def replace_virtual_paths_in_command(command: str, thread_data: ThreadDataState 
     return pattern.sub(replace_match, command)
 
 
-def get_thread_data(runtime: ToolRuntime[ContextT, ThreadState] | None) -> ThreadDataState | None:
+def get_thread_data(runtime: Any | None) -> ThreadDataState | None:
     """Extract thread_data from runtime state."""
     if runtime is None:
         return None
@@ -218,7 +215,7 @@ def get_thread_data(runtime: ToolRuntime[ContextT, ThreadState] | None) -> Threa
     return runtime.state.get("thread_data")
 
 
-def is_local_sandbox(runtime: ToolRuntime[ContextT, ThreadState] | None) -> bool:
+def is_local_sandbox(runtime: Any | None) -> bool:
     """Check if the current sandbox is a local sandbox.
 
     Path replacement is only needed for local sandbox since aio sandbox
@@ -234,7 +231,7 @@ def is_local_sandbox(runtime: ToolRuntime[ContextT, ThreadState] | None) -> bool
     return sandbox_state.get("sandbox_id") == "local"
 
 
-def sandbox_from_runtime(runtime: ToolRuntime[ContextT, ThreadState] | None = None) -> Sandbox:
+def sandbox_from_runtime(runtime: Any | None = None) -> Sandbox:
     """Extract sandbox instance from tool runtime.
 
     DEPRECATED: Use ensure_sandbox_initialized() for lazy initialization support.
@@ -262,7 +259,7 @@ def sandbox_from_runtime(runtime: ToolRuntime[ContextT, ThreadState] | None = No
     return sandbox
 
 
-def ensure_sandbox_initialized(runtime: ToolRuntime[ContextT, ThreadState] | None = None) -> Sandbox:
+def ensure_sandbox_initialized(runtime: Any | None = None) -> Sandbox:
     """Ensure sandbox is initialized, acquiring lazily if needed.
 
     On first call, acquires a sandbox from the provider and stores it in runtime state.
@@ -317,7 +314,7 @@ def ensure_sandbox_initialized(runtime: ToolRuntime[ContextT, ThreadState] | Non
     return sandbox
 
 
-def ensure_thread_directories_exist(runtime: ToolRuntime[ContextT, ThreadState] | None) -> None:
+def ensure_thread_directories_exist(runtime: Any | None) -> None:
     """Ensure thread data directories (workspace, uploads, outputs) exist.
 
     This function is called lazily when any sandbox tool is first used.
@@ -354,8 +351,8 @@ def ensure_thread_directories_exist(runtime: ToolRuntime[ContextT, ThreadState] 
     runtime.state["thread_directories_created"] = True
 
 
-@tool("bash", parse_docstring=True)
-def bash_tool(runtime: ToolRuntime[ContextT, ThreadState], description: str, command: str) -> str:
+@tool("bash")
+def bash_tool(runtime: Any, description: str, command: str) -> str:
     """Execute a bash command in a Linux environment.
 
 
@@ -385,8 +382,8 @@ def bash_tool(runtime: ToolRuntime[ContextT, ThreadState], description: str, com
         return f"Error: Unexpected error executing command: {type(e).__name__}: {e}"
 
 
-@tool("ls", parse_docstring=True)
-def ls_tool(runtime: ToolRuntime[ContextT, ThreadState], description: str, path: str) -> str:
+@tool("ls")
+def ls_tool(runtime: Any, description: str, path: str) -> str:
     """List the contents of a directory up to 2 levels deep in tree format.
 
     Args:
@@ -414,9 +411,9 @@ def ls_tool(runtime: ToolRuntime[ContextT, ThreadState], description: str, path:
         return f"Error: Unexpected error listing directory: {type(e).__name__}: {e}"
 
 
-@tool("read_file", parse_docstring=True)
+@tool("read_file")
 def read_file_tool(
-    runtime: ToolRuntime[ContextT, ThreadState],
+    runtime: Any,
     description: str,
     path: str,
     start_line: int | None = None,
@@ -455,9 +452,9 @@ def read_file_tool(
         return f"Error: Unexpected error reading file: {type(e).__name__}: {e}"
 
 
-@tool("write_file", parse_docstring=True)
+@tool("write_file")
 def write_file_tool(
-    runtime: ToolRuntime[ContextT, ThreadState],
+    runtime: Any,
     description: str,
     path: str,
     content: str,
@@ -491,9 +488,9 @@ def write_file_tool(
         return f"Error: Unexpected error writing file: {type(e).__name__}: {e}"
 
 
-@tool("str_replace", parse_docstring=True)
+@tool("str_replace")
 def str_replace_tool(
-    runtime: ToolRuntime[ContextT, ThreadState],
+    runtime: Any,
     description: str,
     path: str,
     old_str: str,

@@ -4,6 +4,8 @@
 
 The task tool has been improved to eliminate wasteful LLM polling. Previously, when using background tasks, the LLM had to repeatedly call `task_status` to poll for completion, causing unnecessary API requests.
 
+The tool now validates `subagent_type` against the subagent registry, so any registered subagent name can be invoked.
+
 ## Changes Made
 
 ### 1. Removed `run_in_background` Parameter
@@ -30,9 +32,9 @@ while True:
 ```python
 # Tool blocks until complete, polling happens in backend
 result = task(
-    subagent_type="bash",
+    description="Run tests",
     prompt="Run tests",
-    description="Run tests"
+    subagent_type="bash"
 )
 # Result is available immediately after the call returns
 ```
@@ -41,7 +43,7 @@ result = task(
 
 The `task_tool` now:
 - Starts the subagent task asynchronously
-- Polls for completion in the backend (every 2 seconds)
+- Polls for completion in the backend (every 5 seconds)
 - Blocks the tool call until completion
 - Returns the final result directly
 
@@ -49,7 +51,7 @@ This means:
 - ✅ LLM makes only ONE tool call
 - ✅ No wasteful LLM polling requests
 - ✅ Backend handles all status checking
-- ✅ Timeout protection (5 minutes max)
+- ✅ Timeout protection (execution timeout + polling safety buffer)
 
 ### 3. Removed `task_status` from LLM Tools
 
@@ -72,21 +74,26 @@ Located in `src/tools/builtins/task_tool.py`:
 task_id = executor.execute_async(prompt)
 
 # Poll for task completion in backend
+poll_count = 0
+max_poll_count = (config.timeout_seconds + 60) // 5
 while True:
     result = get_background_task_result(task_id)
 
     # Check if task completed or failed
     if result.status == SubagentStatus.COMPLETED:
-        return f"[Subagent: {subagent_type}]\n\n{result.result}"
+        cleanup_background_task(task_id)
+        return f"Task Succeeded. Result: {result.result}"
     elif result.status == SubagentStatus.FAILED:
-        return f"[Subagent: {subagent_type}] Task failed: {result.error}"
+        cleanup_background_task(task_id)
+        return f"Task failed. Error: {result.error}"
 
     # Wait before next poll
-    time.sleep(2)
+    time.sleep(5)
+    poll_count += 1
 
-    # Timeout protection (5 minutes)
-    if poll_count > 150:
-        return "Task timed out after 5 minutes"
+    # Timeout protection (execution timeout + safety buffer)
+    if poll_count > max_poll_count:
+        return "Task polling timed out"
 ```
 
 ### Execution Timeout
@@ -98,7 +105,7 @@ In addition to polling timeout, subagent execution now has a built-in timeout me
 @dataclass
 class SubagentConfig:
     # ...
-    timeout_seconds: int = 300  # 5 minutes default
+    timeout_seconds: int = 900  # 15 minutes default
 ```
 
 **Thread Pool Architecture**:
@@ -106,12 +113,12 @@ class SubagentConfig:
 To avoid nested thread pools and resource waste, we use two dedicated thread pools:
 
 1. **Scheduler Pool** (`_scheduler_pool`):
-   - Max workers: 4
+   - Max workers: 3
    - Purpose: Orchestrates background task execution
    - Runs `run_task()` function that manages task lifecycle
 
 2. **Execution Pool** (`_execution_pool`):
-   - Max workers: 8 (larger to avoid blocking)
+   - Max workers: 3
    - Purpose: Actual subagent execution with timeout support
    - Runs `execute()` method that invokes the agent
 
@@ -132,8 +139,8 @@ exec_result = future.result(timeout=timeout_seconds)  # Wait with timeout
 - ✅ Better resource utilization
 
 **Two-Level Timeout Protection**:
-1. **Execution Timeout**: Subagent execution itself has a 5-minute timeout (configurable in SubagentConfig)
-2. **Polling Timeout**: Tool polling has a 5-minute timeout (30 polls × 10 seconds)
+1. **Execution Timeout**: Subagent execution uses `timeout_seconds` from `SubagentConfig`
+2. **Polling Safety Timeout**: Tool polling uses `timeout_seconds` + a small buffer, checked each poll interval
 
 This ensures that even if subagent execution hangs, the system won't wait indefinitely.
 
@@ -157,9 +164,9 @@ Example test scenario:
 ```python
 # This should block for ~10 seconds then return result
 result = task(
-    subagent_type="bash",
+    description="Test task",
     prompt="sleep 10 && echo 'Done'",
-    description="Test task"
+    subagent_type="bash"
 )
 # result should contain "Done"
 ```

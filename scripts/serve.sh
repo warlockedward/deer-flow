@@ -26,6 +26,12 @@ else
     FRONTEND_CMD="env BETTER_AUTH_SECRET=$(python3 -c 'import secrets; print(secrets.token_hex(16))') pnpm run preview"
 fi
 
+if command -v nginx >/dev/null 2>&1; then
+    USE_NGINX=true
+else
+    USE_NGINX=false
+fi
+
 # ── Stop existing services ────────────────────────────────────────────────────
 
 echo "Stopping existing services if any..."
@@ -138,7 +144,11 @@ echo "Starting Gateway API..."
 echo "✓ Gateway API started on localhost:8001"
 
 echo "Starting Frontend..."
-(cd frontend && $FRONTEND_CMD > ../logs/frontend.log 2>&1) &
+if $USE_NGINX; then
+    (cd frontend && $FRONTEND_CMD > ../logs/frontend.log 2>&1) &
+else
+    (cd frontend && NEXT_PUBLIC_BACKEND_BASE_URL="http://localhost:8001" NEXT_PUBLIC_LANGGRAPH_BASE_URL="http://localhost:2024" $FRONTEND_CMD > ../logs/frontend.log 2>&1) &
+fi
 ./scripts/wait-for-port.sh 3000 120 "Frontend" || {
     echo "  See logs/frontend.log for details"
     tail -20 logs/frontend.log
@@ -146,15 +156,19 @@ echo "Starting Frontend..."
 }
 echo "✓ Frontend started on localhost:3000"
 
-echo "Starting Nginx reverse proxy..."
-nginx -g 'daemon off;' -c "$REPO_ROOT/docker/nginx/nginx.local.conf" -p "$REPO_ROOT" > logs/nginx.log 2>&1 &
-NGINX_PID=$!
-./scripts/wait-for-port.sh 2026 10 "Nginx" || {
-    echo "  See logs/nginx.log for details"
-    tail -10 logs/nginx.log
-    cleanup
-}
-echo "✓ Nginx started on localhost:2026"
+if $USE_NGINX; then
+    echo "Starting Nginx reverse proxy..."
+    nginx -g 'daemon off;' -c "$REPO_ROOT/docker/nginx/nginx.local.conf" -p "$REPO_ROOT" > logs/nginx.log 2>&1 &
+    NGINX_PID=$!
+    ./scripts/wait-for-port.sh 2026 10 "Nginx" || {
+        echo "  See logs/nginx.log for details"
+        tail -10 logs/nginx.log
+        cleanup
+    }
+    echo "✓ Nginx started on localhost:2026"
+else
+    echo "Skipping Nginx reverse proxy (nginx not found)."
+fi
 
 # ── Ready ─────────────────────────────────────────────────────────────────────
 
@@ -167,15 +181,23 @@ else
 fi
 echo "=========================================="
 echo ""
-echo "  🌐 Application: http://localhost:2026"
-echo "  📡 API Gateway: http://localhost:2026/api/*"
-echo "  🤖 LangGraph:   http://localhost:2026/api/langgraph/*"
+if $USE_NGINX; then
+    echo "  🌐 Application: http://localhost:2026"
+    echo "  📡 API Gateway: http://localhost:2026/api/*"
+    echo "  🤖 LangGraph:   http://localhost:2026/api/langgraph/*"
+else
+    echo "  🌐 Application: http://localhost:3000"
+    echo "  📡 API Gateway: http://localhost:8001"
+    echo "  🤖 LangGraph:   http://localhost:2024"
+fi
 echo ""
 echo "  📋 Logs:"
 echo "     - LangGraph: logs/langgraph.log"
 echo "     - Gateway:   logs/gateway.log"
 echo "     - Frontend:  logs/frontend.log"
-echo "     - Nginx:     logs/nginx.log"
+if $USE_NGINX; then
+    echo "     - Nginx:     logs/nginx.log"
+fi
 echo ""
 echo "Press Ctrl+C to stop all services"
 

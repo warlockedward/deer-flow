@@ -32,7 +32,7 @@ def _get_infoquest_client() -> InfoQuestClient:
     )
 
 
-@tool("web_search", parse_docstring=True)
+@tool("web_search")
 def web_search_tool(query: str) -> str:
     """Search the web.
 
@@ -44,7 +44,7 @@ def web_search_tool(query: str) -> str:
     return client.web_search(query)
 
 
-@tool("web_fetch", parse_docstring=True)
+@tool("web_fetch")
 def web_fetch_tool(url: str) -> str:
     """Fetch the contents of a web page at a given URL.
     Only fetch EXACT URLs that have been provided directly by the user or have been returned in results from the web_search and web_fetch tools.

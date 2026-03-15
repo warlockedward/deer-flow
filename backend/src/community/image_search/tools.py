@@ -74,7 +74,7 @@ def _search_images(
         return []
 
 
-@tool("image_search", parse_docstring=True)
+@tool("image_search")
 def image_search_tool(
     query: str,
     max_results: int = 5,

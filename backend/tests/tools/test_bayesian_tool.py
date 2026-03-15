@@ -1,4 +1,3 @@
-import pytest
 from src.tools.builtins.bayesian_inference import calculate_bayesian_risk
 
 

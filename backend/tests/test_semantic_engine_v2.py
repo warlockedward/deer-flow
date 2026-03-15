@@ -7,7 +7,6 @@ Level 4: Multi-source gating    - orchestrator rules present in SKILL.md
 Level 5: HITL                   - Modeler prompt enforces ask_clarification at >1M
 """
 
-import pytest
 
 from src.subagents.builtins import BUILTIN_SUBAGENTS
 from src.subagents.builtins.semantic_engine import (
