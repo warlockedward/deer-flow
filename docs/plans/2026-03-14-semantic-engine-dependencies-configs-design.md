@@ -1,10 +1,15 @@
 # Design Doc: Semantic Engine Dependencies & Industry Configs
 
 **Date:** 2026-03-14
-**Topic:** Add Dependencies & Create Industry Configs
+**Status:** Implemented（docs updated to match current code）  
+**Topic:** Dependencies + Industry Configs (Industry Maps)
 
 ## Overview
-This design covers the initial setup for the Semantic Growth Engine, including adding the core Bayesian inference library (`pgmpy`) and creating industry-specific configuration files for benchmark data and conflict rules.
+该设计覆盖 Semantic Growth Engine 的基础依赖与行业配置（industry maps）落点，使诊断链路具备：
+
+- 配置驱动因果推断（pgmpy）
+- 可扩展行业基准与规则（industry_maps/*.json）
+- 可用的解析与外联依赖（readability、markdown 转 Slack mrkdwn）
 
 ## Architecture
 - **Dependency Management:** `uv` is used for backend dependency management.
@@ -12,19 +17,26 @@ This design covers the initial setup for the Semantic Growth Engine, including a
 
 ## Components
 ### 1. Backend Dependencies
-- **Library:** `pgmpy`
-- **Purpose:** Core Bayesian inference for the diagnostic engine.
-- **Action:** Update `backend/pyproject.toml` and run `uv sync`.
+- **Libraries (关键)：**
+  - `pgmpy`：贝叶斯推断与因果推断底座
+  - `readabilipy`：网页正文抽取（提升信号质量）
+  - `markdown-to-mrkdwn`：Markdown → Slack mrkdwn（用于消息渠道适配）
+  - `langchain` / `langchain-core`：模型与工具调用框架
+- **Action:** 维护 `backend/pyproject.toml` 并运行 `uv sync`。
 
 ### 2. Industry Maps
 - **Location:** `backend/src/config/industry_maps/`
 - **Files:**
     - `traditional_manufacturing.json`
     - `high_tech.json`
-- **Schema:**
-    - `industry`: String identifier.
-    - `benchmarks`: Object containing key performance indicators.
-    - `conflict_rules`: List of objects defining strategy-behavior conflicts.
+- **Schema (现行摘要)：**
+  - `industry`
+  - `benchmarks`
+  - `industry_mapping` / `logic_mapping`
+  - `signals`（time-decay / multi-source）
+  - `confidence`（circuit breaker）
+  - `failure_boundaries` / `policy_shock` / `trigger_rules`
+  - `causal_relationships` / `conflict_rules`
 
 ## Data Flow
 1. Agents (Sensor/Interpreter) read JSON configs from the industry maps directory.
@@ -34,6 +46,7 @@ This design covers the initial setup for the Semantic Growth Engine, including a
 ## Testing
 - Verify `uv sync` completes without errors.
 - Verify JSON files are valid and correctly placed.
+ - Run backend tests covering config loading and v2 inference.
 
 ## Implementation Plan
 1. Modify `backend/pyproject.toml` to add `pgmpy`.

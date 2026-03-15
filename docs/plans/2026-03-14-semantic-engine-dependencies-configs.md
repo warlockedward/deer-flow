@@ -1,77 +1,55 @@
 # Semantic Engine Dependencies & Industry Configs Implementation Plan
 
-> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+**Date**: 2026-03-14  
+**Status**: Implemented（docs updated to match current code and configs）  
+**Goal:** 记录后端依赖与行业配置的落地位置与现状，便于二次开发扩展。
 
-**Goal:** Add `pgmpy` dependency and create industry-specific configuration files for the Semantic Growth Engine.
-
-**Architecture:** Update backend dependencies using `uv` and create JSON configuration files in a dedicated directory for agent consumption.
+**Architecture:** 后端通过 `uv` 管理依赖，行业配置以 JSON 形式存储在 `backend/src/config/industry_maps/`，被确定性诊断管线与 subagents/tooling 消费。
 
 **Tech Stack:** Python, `uv`, JSON.
 
 ---
 
-### Task 1: Add Dependencies & Create Industry Configs
+## Dependencies（现行）
 
-**Files:**
-- Modify: `backend/pyproject.toml`
-- Create: `backend/src/config/industry_maps/traditional_manufacturing.json`
-- Create: `backend/src/config/industry_maps/high_tech.json`
+依赖来源：`backend/pyproject.toml`
 
-**Step 1: Update dependencies**
+关键依赖（与当前链路直接相关）：
 
-Add `pgmpy` to the `dependencies` list in `backend/pyproject.toml`.
+- `pgmpy`：贝叶斯推断与因果推断底座（v2 工具与推断链路依赖）
+- `readabilipy`：网页正文抽取（提升信号质量）
+- `markdown-to-mrkdwn`：Markdown → Slack mrkdwn（渠道适配/外联格式）
+- `langchain` / `langchain-core`：模型与工具调用框架（runner/agent harness）
 
-**Step 2: Install dependencies**
-
-Run: `cd backend && uv sync`
-Expected: Successfully installs `pgmpy`.
-
-**Step 3: Create Industry Dictionaries**
-
-Create the JSON files containing basic Benchmark Data and strategy-behavior conflict rules.
-
-For `traditional_manufacturing.json`:
-```json
-{
-  "industry": "traditional_manufacturing",
-  "benchmarks": {
-    "avg_gross_margin": 0.15,
-    "r_and_d_ratio": 0.03,
-    "labor_productivity_ratio": 1.2
-  },
-  "conflict_rules": [
-    {
-      "claim": "Innovation Leader",
-      "behavior": "Decreasing R&D Investment",
-      "symptom_output": "Cost Structure Out of Control"
-    }
-  ]
-}
-```
-
-For `high_tech.json`:
-```json
-{
-  "industry": "high_tech",
-  "benchmarks": {
-    "avg_gross_margin": 0.60,
-    "r_and_d_ratio": 0.20,
-    "talent_retention_rate": 0.85
-  },
-  "conflict_rules": [
-    {
-      "claim": "Talent-Driven Organization",
-      "behavior": "High Key-Person Turnover",
-      "symptom_output": "Organizational Capability Fracture"
-    }
-  ]
-}
-```
-
-**Step 4: Commit**
+安装方式：
 
 ```bash
 cd backend
-git add pyproject.toml uv.lock src/config/industry_maps/
-git commit -m "feat(semantic-engine): add pgmpy dependency and industry map configs"
+uv sync
+```
+
+## Industry Maps（现行）
+
+配置目录：`backend/src/config/industry_maps/`
+
+当前已包含（至少）：
+
+- `traditional_manufacturing.json`
+- `high_tech.json`
+
+Schema 摘要（以当前 `traditional_manufacturing.json` 为准）：
+
+- `benchmarks`：行业 KPI 基准
+- `industry_mapping` / `logic_mapping`：基准偏离与逻辑放大
+- `signals.decay_rate_months` / `signals.multi_source_threshold`
+- `confidence`：circuit breaker 门禁参数
+- `failure_boundaries.B`：Boundary B 触发配置
+- `policy_shock` + `trigger_rules`：shock mode 的 pivot 行为
+- `causal_relationships` / `conflict_rules`
+
+## 验证命令
+
+```bash
+cd backend
+pytest -q
 ```
